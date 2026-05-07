@@ -1,0 +1,19 @@
+name: issues-action-demo
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  claude-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build logic file
+        run: |
+          echo "## Issue context" >> $GITHUB_ENV
+          echo "**Title: ** ${{ github.event.issues.title  }}" >> $GITHUB_ENV
+          echo "**Body: ** ${{ github.event.issues.body}}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
