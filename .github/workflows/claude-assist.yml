@@ -64,7 +64,15 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_args: "--max-turns 15"
+          claude_args: "--max-turns 30"
+          show_full_output: true
+          settings: |
+            {
+              "permissions": {
+                "allow": ["Bash(*)", "Read(*)", "Write(*)", "Edit(*)"],
+                "deny": []
+              }
+            }
           prompt: |
             Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
 
@@ -148,7 +156,15 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_args: "--max-turns 20"
+          claude_args: "--max-turns 40"
+          show_full_output: true
+          settings: |
+            {
+              "permissions": {
+                "allow": ["Bash(*)", "Read(*)", "Write(*)", "Edit(*)"],
+                "deny": []
+              }
+            }
           prompt: |
             Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
 
@@ -206,4 +222,12 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_args: "--max-turns 10"
+          claude_args: "--max-turns 20"
+          show_full_output: true
+          settings: |
+            {
+              "permissions": {
+                "allow": ["Bash(*)", "Read(*)", "Write(*)", "Edit(*)"],
+                "deny": []
+              }
+            }
