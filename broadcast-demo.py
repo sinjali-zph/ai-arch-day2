@@ -7,6 +7,7 @@ Created on Sat Jan 11 19:38:27 2020
 
 import pyspark
 from pyspark.sql import SparkSession
+from pyspark_skills.demographics_handler import DemographicsHandler
 
 
 spark = SparkSession.builder.appName("SparkByExamples.com").getOrCreate()
@@ -37,3 +38,14 @@ result.show(truncate=False)
 # Broadcast variable on filter
 
 filteDf = df.where((df["state"].isin(broadcastStates.value)))
+
+# --- Demographics encryption ---
+handler = DemographicsHandler(mode="hash")
+
+report = handler.detect_demographics(result)
+print("Detected PII columns:", report["detected"])
+print("Clean columns:       ", report["clean"])
+
+encrypted_result = handler.encrypt_columns(result, encrypt_all_detected=True)
+print("\nEncrypted result (SHA-256):")
+encrypted_result.show(truncate=False)
