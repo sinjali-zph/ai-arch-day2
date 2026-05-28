@@ -6,7 +6,7 @@ on:
   pull_request_review_comment:
     types: [created]
   issues:
-    types: [opened, assigned]
+    types: [opened, assigned, edited]
   pull_request:
     types: [opened, synchronize]
 
@@ -16,15 +16,72 @@ permissions:
   issues: write
 
 jobs:
+  # ── demographics skill: fires automatically when the issue body matches ──
+  demographics-skill:
+    name: Apply Demographics Skill
+    runs-on: ubuntu-latest
+
+    # Trigger when an issue is opened/edited and its title or body
+    # contains any demographics / PII keyword.
+    if: |
+      github.event_name == 'issues' &&
+      (
+        contains(github.event.issue.title, 'encrypt') ||
+        contains(github.event.issue.title, 'demographics') ||
+        contains(github.event.issue.title, 'pii') ||
+        contains(github.event.issue.title, 'remove pii') ||
+        contains(github.event.issue.title, 'redact') ||
+        contains(github.event.issue.body, 'encrypt demographics') ||
+        contains(github.event.issue.body, 'encrypt pii') ||
+        contains(github.event.issue.body, 'remove demographics') ||
+        contains(github.event.issue.body, 'remove pii') ||
+        contains(github.event.issue.body, 'strip pii') ||
+        contains(github.event.issue.body, 'redact demographics') ||
+        contains(github.event.issue.body, 'redact pii') ||
+        contains(github.event.issue.body, 'mask pii') ||
+        contains(github.event.issue.body, 'handle demographics') ||
+        contains(github.event.issue.body, 'demographics data') ||
+        contains(github.event.issue.body, 'personally identifiable') ||
+        contains(github.event.issue.body, 'sensitive data')
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so Claude can branch off main
+
+      - name: Run Claude Code — Demographics Skill
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: "--max-turns 15"
+          direct_prompt: |
+            Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+
+            Issue body:
+            ${{ github.event.issue.body }}
+
+            This issue requests a demographics / PII operation.
+            Follow the "Demographics / PII skill" instructions in .github/claude/prompt.md exactly:
+            1. Identify the target PySpark file (or create one if none exists).
+            2. Identify which operation the issue is asking for (encrypt, remove, redact, detect).
+            3. Identify which columns are mentioned (use encrypt_all_detected=True if none specified).
+            4. Apply the DemographicsHandler from pyspark_skills/demographics_handler.py.
+            5. Create branch fix/demographics-${{ github.event.issue.number }}, commit the changes,
+               open a PR that closes this issue, and post a comment on the issue with the PR link.
+
+  # ── general Claude assistant: fires on @claude mentions and PRs ─────────
   claude-response:
-    # Only run when @claude is mentioned (for comment events)
+    name: Claude General Assistant
+    runs-on: ubuntu-latest
+
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
       github.event_name == 'pull_request'
-
-    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
