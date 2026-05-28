@@ -65,7 +65,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_args: "--max-turns 15"
-          direct_prompt: |
+          prompt: |
             Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
 
             Issue body:
@@ -149,7 +149,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_args: "--max-turns 20"
-          direct_prompt: |
+          prompt: |
             Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
 
             Issue body:
