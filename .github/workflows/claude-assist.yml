@@ -51,6 +51,14 @@ jobs:
         with:
           fetch-depth: 0          # full history so Claude can branch off main
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install anthropic
+
       - name: Run Claude Code — Demographics Skill
         uses: anthropics/claude-code-action@v1
         with:
@@ -64,13 +72,117 @@ jobs:
             ${{ github.event.issue.body }}
 
             This issue requests a demographics / PII operation.
-            Follow the "Demographics / PII skill" instructions in .github/claude/prompt.md exactly:
+            Follow the "Demographics / PII skill" instructions in .github/claude/prompt.md exactly.
+
+            The multi-agent system is at pyspark_skills/agents/.
+            Use the orchestrator to automatically route to the correct subagent:
+              from pyspark_skills.agents import run_orchestrator
+              result = run_orchestrator(
+                  issue_title="<issue title>",
+                  issue_body="<issue body>",
+                  file_content=open("<target file>").read(),
+                  file_path="<target file path>",
+              )
+
+            Subagents available (pyspark_skills/agents/subagents.py):
+              - detect_agent  : report PII columns as JSON
+              - encrypt_agent : SHA-256 hash or AES-GCM encrypt PII columns
+              - remove_agent  : drop all PII columns
+              - redact_agent  : replace PII values with placeholder
+
+            Steps:
             1. Identify the target PySpark file (or create one if none exists).
-            2. Identify which operation the issue is asking for (encrypt, remove, redact, detect).
-            3. Identify which columns are mentioned (use encrypt_all_detected=True if none specified).
-            4. Apply the DemographicsHandler from pyspark_skills/demographics_handler.py.
-            5. Create branch fix/demographics-${{ github.event.issue.number }}, commit the changes,
+            2. Run run_orchestrator() — it selects the right subagent automatically.
+            3. Write result["output"] back to the target file (skip if operation is "detect").
+            4. Create branch fix/demographics-${{ github.event.issue.number }}, commit the changes,
                open a PR that closes this issue, and post a comment on the issue with the PR link.
+
+  # ── spark-engineer skill: fires automatically when the issue matches ─────
+  spark-engineer-skill:
+    name: Apply Spark Engineer Skill
+    runs-on: ubuntu-latest
+
+    if: |
+      github.event_name == 'issues' &&
+      (
+        contains(github.event.issue.title, 'spark') ||
+        contains(github.event.issue.title, 'pyspark') ||
+        contains(github.event.issue.title, 'optimize') ||
+        contains(github.event.issue.title, 'skew') ||
+        contains(github.event.issue.title, 'streaming') ||
+        contains(github.event.issue.body, 'optimize spark') ||
+        contains(github.event.issue.body, 'spark pipeline') ||
+        contains(github.event.issue.body, 'pyspark') ||
+        contains(github.event.issue.body, 'spark job') ||
+        contains(github.event.issue.body, 'fix skew') ||
+        contains(github.event.issue.body, 'data skew') ||
+        contains(github.event.issue.body, 'broadcast join') ||
+        contains(github.event.issue.body, 'spark performance') ||
+        contains(github.event.issue.body, 'spark sql') ||
+        contains(github.event.issue.body, 'streaming pipeline') ||
+        contains(github.event.issue.body, 'spark streaming') ||
+        contains(github.event.issue.body, 'structured streaming') ||
+        contains(github.event.issue.body, 'shuffle partitions') ||
+        contains(github.event.issue.body, 'spark etl') ||
+        contains(github.event.issue.body, 'debug spark') ||
+        contains(github.event.issue.body, 'write spark') ||
+        contains(github.event.issue.body, 'rdd pipeline')
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Run Claude Code — Spark Engineer Skill
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: "--max-turns 20"
+          direct_prompt: |
+            Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+
+            Issue body:
+            ${{ github.event.issue.body }}
+
+            This issue requests a Spark engineering operation.
+            Follow the "Spark Engineer skill" instructions in .github/claude/prompt.md exactly.
+
+            The multi-agent system is at pyspark_skills/spark_engineer/.
+            Subagents are at pyspark_skills/spark_engineer/agents/subagents.py:
+              - optimize_agent  — optimize an existing PySpark pipeline
+              - write_agent     — generate a new production PySpark pipeline
+              - debug_agent     — identify and fix performance/correctness bugs
+              - stream_agent    — implement Spark Structured Streaming
+
+            The orchestrator at pyspark_skills/spark_engineer/agents/orchestrator.py
+            automatically selects the correct subagent based on the issue content.
+
+            Steps:
+            1. Identify the operation from the issue keywords (optimize/write/debug/stream).
+            2. Identify the target PySpark file, or determine a new filename for write/stream.
+            3. Run the orchestrator:
+                 from pyspark_skills.spark_engineer import run_orchestrator
+                 result = run_orchestrator(
+                     request_title="<issue title>",
+                     request_body="<issue body>",
+                     file_content=open("<target file>").read(),
+                     file_path="<target file>",
+                 )
+            4. Write result["output"] back to the target file.
+            5. Create branch feat/spark-engineer-${{ github.event.issue.number }},
+               commit the changes, open a PR that closes this issue,
+               and post a comment on the issue with the PR link.
 
   # ── general Claude assistant: fires on @claude mentions and PRs ─────────
   claude-response:
