@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "spark-engineer": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/spark-engineer/SKILL.md",
+      "computedHash": "4c66f4104d2780f8075ca8e38084d009dfe7d2f8c594424f570611e50d4943b6"
+    }
+  }
+}
